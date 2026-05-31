@@ -3,6 +3,7 @@
 #include <vector>
 #include "lib/pugixml.hpp"
 #include <string>
+#include <filesystem>
 // Explicitly naming scope prevents global namespace pollution
 using std::cout;
 using std::endl;
@@ -20,10 +21,10 @@ class LibroSimilar{
         }
         /// @brief Funcion de Debug, para revisar que tenga correctamente ingresados los datos leidos por la clase Libro del archivo XML
         void check(){
-            cout << "Checkeo de LibroSimilar" << endl;
-            cout << "ID: " << id << endl;
-            cout << "Titulo: " << titulo << endl;
-            cout << "ISBN: " << isbn << endl;
+            cout << "  Checkeo de LibroSimilar" << endl;
+            cout << "  ID: " << id << endl;
+            cout << "  Titulo: " << titulo << endl;
+            cout << "  ISBN: " << isbn << endl;
         }
 };
 /// @brief  Clase que contiene toda la informacion sobre el libro que se escanea en el archivo XML
@@ -61,7 +62,7 @@ class Libro{
         }
         /// @brief  Funcion de Debug, para revisar que tenga correctamente ingresados los datos leidos en el archivo XML
         void check(){
-            cout << "Checkeo de LibroCompleto" << endl;
+            cout << "====Checkeo de LibroCompleto====" << endl;
             cout << "ID: " << id << endl;
             cout << "Titulo: " << titulo << endl;
             cout << "ISBN: " << isbn << endl;
@@ -80,14 +81,23 @@ class Libro{
 
 
 int main() {
+    bool debugging = false;
     std::ios_base::sync_with_stdio(false);
     std::cin.tie(NULL);
-    //Lectura de Archivos XML
-    string c = "XMLs/1.xml";
-    pugi::xml_document doc;
-    pugi::xml_parse_result result = doc.load_file(c.c_str());
-    if (!result)
-        return -1;
-    Libro l = Libro(&doc);
-    l.check();
+    //Lectura de Archivos XML, deben estar guardados en una carpeta llamada "XMLs" junto al ejecutable
+    namespace fs = std::filesystem;
+    string c = "XMLs/";
+    int i = 0;
+    for (const auto & entry : fs::directory_iterator(c)){
+        pugi::xml_document doc;
+        pugi::xml_parse_result result = doc.load_file(entry.path().c_str());
+        if (!result)
+            return -1;
+        Libro l = Libro(&doc);
+        i++;
+        if(debugging){
+            l.check();
+            cout << "Archivos procesados: " << i<< endl;
+        }
+    }
 }
