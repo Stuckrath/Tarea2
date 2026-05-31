@@ -7,7 +7,7 @@
 using std::cout;
 using std::endl;
 using std::string;
-
+/// @brief Clase secundaria que será contenida en la clase de Libro, proviene de leer la información en la etiqueta de <similar_works>
 class LibroSimilar{
     public:
         int id;
@@ -18,6 +18,7 @@ class LibroSimilar{
             isbn = is;
             titulo = title;
         }
+        /// @brief Funcion de Debug, para revisar que tenga correctamente ingresados los datos leidos por la clase Libro del archivo XML
         void check(){
             cout << "Checkeo de LibroSimilar" << endl;
             cout << "ID: " << id << endl;
@@ -25,7 +26,7 @@ class LibroSimilar{
             cout << "ISBN: " << isbn << endl;
         }
 };
-
+/// @brief  Clase que contiene toda la informacion sobre el libro que se escanea en el archivo XML
 class Libro{
     public:
         int id; //id
@@ -37,6 +38,8 @@ class Libro{
         float rating; // average_rating
         int pageNum; // num_pages *
         std::vector<LibroSimilar> similares = {};
+        /// @brief  Utiliza libreria pugixml para acceder al nodo de libro y a partir de ahi sacar toda la información relevante para el arbol
+        /// @param doc 
         Libro(pugi::xml_document* doc){
             pugi::xml_node root = doc->child("GoodreadsResponse").child("book");
             id = root.child("id").text().as_int();
@@ -56,6 +59,7 @@ class Libro{
                 similares.push_back(ls);
             }
         }
+        /// @brief  Funcion de Debug, para revisar que tenga correctamente ingresados los datos leidos en el archivo XML
         void check(){
             cout << "Checkeo de LibroCompleto" << endl;
             cout << "ID: " << id << endl;
@@ -76,9 +80,9 @@ class Libro{
 
 
 int main() {
-    // Optimize standard input/output streams
     std::ios_base::sync_with_stdio(false);
     std::cin.tie(NULL);
+    //Lectura de Archivos XML
     string c = "XMLs/1.xml";
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_file(c.c_str());
