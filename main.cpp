@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <stack>
 #include "lib/pugixml.hpp"
 #include <string>
 #include <filesystem>
@@ -8,72 +9,72 @@
 using std::cout;
 using std::endl;
 using std::string;
-/// @brief Clase secundaria que será contenida en la clase de Libro, proviene de leer la información en la etiqueta de <similar_works>
-class LibroSimilar{
+
+
+class Nodo{
     public:
-        int id;
-        int isbn;
-        string titulo;
-        LibroSimilar(int i, int is, string title){
-            id = i;
-            isbn = is;
-            titulo = title;
+        string data;
+        std::vector<Nodo*> hijos;
+        Nodo(string d){
+            data = d;
         }
-        /// @brief Funcion de Debug, para revisar que tenga correctamente ingresados los datos leidos por la clase Libro del archivo XML
-        void check(){
-            cout << "  Checkeo de LibroSimilar" << endl;
-            cout << "  ID: " << id << endl;
-            cout << "  Titulo: " << titulo << endl;
-            cout << "  ISBN: " << isbn << endl;
+        Nodo(){
+            data = "";
+        }
+        ~Nodo(){
+            for (Nodo* hijo : hijos){
+                delete hijo;
+            }
+        }
+        void agregarHijo(Nodo* ref){
+            hijos.push_back(ref);
         }
 };
+
+
 /// @brief  Clase que contiene toda la informacion sobre el libro que se escanea en el archivo XML
-class Libro{
+class LibroCreator{
     public:
-        int id; //id
-        std::string titulo; //title *
-        int isbn; //isbn
-        int year; //publication_year
-        std::string idioma; //language_code
-        std::string desc; //description *
-        float rating; // average_rating
-        int pageNum; // num_pages *
-        std::vector<LibroSimilar> similares = {};
         /// @brief  Utiliza libreria pugixml para acceder al nodo de libro y a partir de ahi sacar toda la información relevante para el arbol
         /// @param doc 
-        Libro(pugi::xml_document* doc){
+        void CrearNodo(pugi::xml_document* doc, Nodo* base){
+            base->data="GoodreadsResponse";
+            Nodo* book = new Nodo("book");
+            base->agregarHijo(book);
             pugi::xml_node root = doc->child("GoodreadsResponse").child("book");
-            id = root.child("id").text().as_int();
-            titulo = root.child("title").text().as_string();
-            isbn = root.child("isbn").text().as_int();
-            year = root.child("publication_year").text().as_int();
-            idioma = root.child("language_code").text().as_string();
-            desc = root.child("description").text().as_string();
-            rating = root.child("average_rating").text().as_float();
-            pageNum = root.child("num_pages").text().as_int();
+            std::vector<string> etiquetasSimples = {"id", "title", "isbn", "publication_year", "language_code", "description", "average_rating", "num_pages"};
+            for (string name : etiquetasSimples){
+                book->agregarHijo(new Nodo(name));
+            }
+            for (Nodo* etiqueta : book->hijos){
+                etiqueta->agregarHijo(new Nodo(root.child(etiqueta->data).text().as_string()));
+            }
+            Nodo* LibrosSimilares = new Nodo("similar_books");
+            book->agregarHijo(LibrosSimilares);
+
             pugi::xml_node similares_root = root.child("similar_books");
+            std::vector<string> etiquetasSimilares = {"title", "isbn", "publication_year"};
+
             for (pugi::xml_node node_similar : similares_root.children()){
-                int s_id = node_similar.child("id").text().as_int();
-                string s_title = node_similar.child("title").text().as_string();
-                int s_isbn = node_similar.child("isbn").text().as_int();
-                LibroSimilar ls = LibroSimilar(s_id, s_isbn, s_title);
-                similares.push_back(ls);
+                Nodo* singular_similar_book = new Nodo("book");
+                for (string name : etiquetasSimilares) {
+                    singular_similar_book->agregarHijo(new Nodo(name));
+                }
+                for (Nodo* etiqueta : singular_similar_book->hijos){
+                    etiqueta->agregarHijo(new Nodo(node_similar.child(etiqueta->data).text().as_string()));
+                }
+                LibrosSimilares->agregarHijo(singular_similar_book);
             }
-        }
-        /// @brief  Funcion de Debug, para revisar que tenga correctamente ingresados los datos leidos en el archivo XML
-        void check(){
-            cout << "====Checkeo de LibroCompleto====" << endl;
-            cout << "ID: " << id << endl;
-            cout << "Titulo: " << titulo << endl;
-            cout << "ISBN: " << isbn << endl;
-            cout << "Year: " << year << endl;
-            cout << "Idioma: " << idioma << endl;
-            cout << "Descripcion: " << desc << endl;
-            cout << "Rating: " << rating << endl;
-            cout << "Numero de Paginas: " << pageNum << endl;
-            for (LibroSimilar ls : similares){
-                ls.check();
+
+            std::stack<Nodo*> testeo;
+            testeo.push(base);
+            while (!testeo.empty()){
+                Nodo* auxNode = testeo.top();
+                testeo.pop();
+                cout<<auxNode->data<<endl;
+                for (Nodo* n: auxNode->hijos) testeo.push(n);
             }
+            return;
         }
 };
 
@@ -81,23 +82,33 @@ class Libro{
 
 
 int main() {
-    bool debugging = false;
+    bool debugging = true;
     std::ios_base::sync_with_stdio(false);
     std::cin.tie(NULL);
     //Lectura de Archivos XML, deben estar guardados en una carpeta llamada "XMLs" junto al ejecutable
     namespace fs = std::filesystem;
     string c = "XMLs/";
     int i = 0;
+    LibroCreator lb = LibroCreator();
     for (const auto & entry : fs::directory_iterator(c)){
         pugi::xml_document doc;
         pugi::xml_parse_result result = doc.load_file(entry.path().c_str());
         if (!result)
             return -1;
-        Libro l = Libro(&doc);
         i++;
+        Nodo node = Nodo(); 
+        lb.CrearNodo(&doc,&node);
         if(debugging){
-            l.check();
-            cout << "Archivos procesados: " << i<< endl;
+            std::stack<Nodo*> testeo;
+            testeo.push(&node);
+            while (!testeo.empty()){
+                Nodo* auxNode = testeo.top();
+                testeo.pop();
+                cout<<auxNode->data<<endl;
+                for (Nodo* n: auxNode->hijos) testeo.push(n);
+            }
         }
+        return 1;
     }
+    return 0;
 }
