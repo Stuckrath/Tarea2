@@ -38,6 +38,7 @@ class Nodo{
                 if (child->data==dato){
                     return child;
                 }
+                else return nullptr;
             }
         }
 
@@ -236,6 +237,10 @@ class Tree{
         }
 
     void borrar_ratings(float rating){
+        if (root.hijos.empty()){
+            cout<<"El arbol ya está vacío, no se pueden borrar ratings"<<endl;
+            return;
+        }
         for (Nodo* child : root.hijos){
             Nodo* dato=child->getHijo("average_rating");
             string rat2= ((dato->hijos)[0])->data;
@@ -247,25 +252,32 @@ class Tree{
     }
 
     void precursores(){
+        if (root.hijos.empty()){
+            cout<<"El arbol está vacío"<<endl;
+            return;
+        }
+        int cont=0;
         for (Nodo* child : root.hijos){
             Nodo* dato=child->getHijo( "publication_year");
             string str= ((dato->hijos)[0])->data;
-            int año= std::stoi(str);
+            int año= (str=="") ? 5000 : std::stoi(str);  //default
             Nodo* similares=child->getHijo("similar_books");
             int i=0;
             for (Nodo* libro : similares->hijos){
                 Nodo* date=libro->getHijo( "publication_year");
-               int añoS = (date->hijos[0])->data.empty() ? 0 : std::stoi((date->hijos[0])->data);
+               int añoS =( (date->hijos[0])->data == "" )? 5000 : std::stoi((date->hijos[0])->data);  //asigna default
                 if (añoS>año){
                     i++;
                 }    
             }
             if (i==(similares->hijos).size()){
-            cout<<(((child->getHijo("id")))->hijos[0])->data<<endl;}
-            else {
-                cout<<"No hay precursores"<<endl;
-            }
-        }  
+            cout<<(((child->getHijo("id")))->hijos[0])->data<<endl;
+            cont++;
+        }
+            
+        } 
+        if (cont==0) {
+                cout<<"No hay precursores"<<endl;} 
     }
 };
 
@@ -274,5 +286,8 @@ int main(){
     cout<<"aaaaa"<<endl;
     arbol.listar();
     arbol.precursores();
+    arbol.borrar_ratings(4);
+    arbol.listar();
+    arbol.borrar_ratings(10);
 
 }
