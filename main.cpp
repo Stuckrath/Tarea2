@@ -3,13 +3,16 @@
 #include <vector>
 #include <stack>
 #include "lib/pugixml.hpp"
-#include <string>
 #include <filesystem>
 // Explicitly naming scope prevents global namespace pollution
 using std::cout;
 using std::endl;
 using std::string;
 
+
+
+#include <vector>
+#include <iostream>
 
 class Nodo{
     public:
@@ -29,6 +32,15 @@ class Nodo{
         void agregarHijo(Nodo* ref){
             hijos.push_back(ref);
         }
+
+        Nodo* getHijo(string dato){
+            for (Nodo* child: hijos){
+                if (child->data==dato){
+                    return child;
+                }
+            }
+        }
+
 };
 
 
@@ -79,6 +91,62 @@ class LibroCreator{
 };
 
 
+class Tree{
+    private:
+        Nodo root= Nodo();
+        void preorder(Nodo* nodo) {
+            if (!nodo)
+                return;
+            if (nodo->data=="id"){
+                Nodo* n_id=(nodo->hijos)[0];
+                cout<<n_id->data<<endl;
+            }
+            for (Nodo* child : nodo->hijos)
+                preorder(child);
+        }
+        
+        void deleteSubtree(Nodo* node) {
+        if (!node) return;
+            for (auto child : node->hijos)
+                deleteSubtree(child);
+            delete node;
+        }
+        
+    public:
+     void listar(){
+            preorder(&root);
+        }
+
+    void borrar_ratings(float rating){
+        for (Nodo* child : root.hijos){
+            Nodo* dato=child->getHijo("average_rating");
+            string rat2= ((dato->hijos)[0])->data;
+            float num= std::stof(rat2);
+            if (num<=rating){
+                deleteSubtree(child);
+            }  
+        }                  
+    }
+
+    void precursores(){
+        for (Nodo* child : root.hijos){
+            Nodo* dato=child->getHijo( "publication_year");
+            string str= ((dato->hijos)[0])->data;
+            int año= std::stoi(str);
+            Nodo* similares=child->getHijo("similar_books");
+            int i=0;
+            for (Nodo* libro : similares->hijos){
+                Nodo* libro=child->getHijo( "publication_year");
+                int añoS= std::stoi( ((dato->hijos)[0])->data);
+                if (añoS>año){
+                    i++;
+                }    
+            }
+            if (i==(similares->hijos).size()){
+            cout<<(child->getHijo("id"))->data<<endl;}
+        }  
+    }
+};
 
 
 int main() {
