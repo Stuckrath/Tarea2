@@ -134,7 +134,11 @@ class Tree{
                     auxStruct.push(hijo);
                 }
             }
-            cout << ids;    
+            if (ids == "Lista de IDs: "){
+            cout << "Lista de libros está vacía!";     
+            }
+            else{
+            cout << ids;   } 
             cout <<endl<<endl;
         }
         
@@ -232,9 +236,10 @@ class Tree{
             if (num<=rating){
                 deleteSubtree(child); //si el rating del libro es mejor al parametro se elimina el libro (y por lo tanto su subarbol)
                 i++;
+                
             }  
         } 
-        cout<<"Fueron borrados "<<i<<" libros"<<endl;  
+        cout<<"Fueron borrados "<<i<<" libros con rating menor o igual a "<<rating<<endl;  
     }
 
     //metodo que indica que libros tienen libros similares con una publicación posterior
