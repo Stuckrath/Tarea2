@@ -136,9 +136,7 @@ class Tree{
         }
         
         void deleteSubtree(Nodo* node) {
-        if (!node) return;
-            for (auto child : node->hijos)
-                deleteSubtree(child);
+            if (!node) return;
             delete node;
         }
 
@@ -215,26 +213,44 @@ class Tree{
         }
 
     void borrar_ratings(float rating){
+        cout << "Estoy Dentro" << endl;
         if (root.hijos.empty()){
             cout<<"El arbol ya está vacío, no se pueden borrar más libros"<<endl;
             return;
         }
-        int i =0;
-        for (Nodo* child : root.hijos){
-            Nodo* dato=child->getHijo("average_rating");
-            string rat2= ((dato->hijos)[0])->data;
-            float num= (rat2=="") ? 0 : std::stof(rat2);
-            if (num<=rating){
+        int removed = 0;
+        for (size_t idx = 0; idx < root.hijos.size(); ){
+            Nodo* child = root.hijos[idx];
+            if (!child){
+                idx++;
+                continue;
+            }
+            Nodo* dato = child->getHijo("average_rating");
+            if (!dato || dato->hijos.empty()){
+                idx++;
+                continue;
+            }
+            string rat2 = dato->hijos[0]->data;
+            float num = 0.0f;
+            if (!tryParseFloat(rat2, num)){
+                num = 0.0f;
+            }
+            if (num <= rating){
+                root.hijos.erase(root.hijos.begin() + idx);
                 deleteSubtree(child);
-                i++;
-            }  
-        } 
-        cout<<"Fueron borrados "<<i<<" libros"<<endl;
+                removed++;
+            } else {
+                idx++;
+            }
+        }
+        cout<<"Fueron borrados "<<removed<<" libros"<<endl;
     }
 
     void precursores(){
-        string base_prec = "Libros que son precursores: ";
+        cout << "Procesando precursores en " << root.hijos.size() << " libros..." << endl;
+        string resultado = "Libros que son precursores: ";
         for (Nodo* child : root.hijos){
+            if (!child) continue;
             Nodo* idNodo = child->getHijo("id");
             if (!idNodo || idNodo->hijos.empty()) continue;
             Nodo* dato = child->getHijo("publication_year");
@@ -243,9 +259,14 @@ class Tree{
             int year;
             if (!tryParseInt(str, year)) continue;
             Nodo* similares = child->getHijo("similar_books");
-            if (!similares) continue;
+            if (!similares){
+                resultado += idNodo->hijos[0]->data;
+                resultado += ", ";
+                continue;
+            }
             bool pastBookExists = false;
             for (Nodo* libro : similares->hijos){
+                if (!libro) continue;
                 Nodo* dateNode = libro->getHijo("publication_year");
                 if (!dateNode || dateNode->hijos.empty()) continue;
                 string dateStr = dateNode->hijos[0]->data;
@@ -258,11 +279,13 @@ class Tree{
             }
 
             if (!pastBookExists){
-                base_prec += idNodo->hijos[0]->data;
-                base_prec += ", ";
+                resultado += idNodo->hijos[0]->data;
+                resultado += ", ";
             }
         }
-        cout << base_prec << endl << endl;
+        cout << resultado << endl;
+        cout << "precursores terminado" << endl;
+        return;
     }
 };
 
@@ -271,6 +294,7 @@ int main(){
     cout<<"aaaaa"<<endl;
     arbol.listar();
     arbol.precursores();
+    cout<<"Estoy fuera"<<endl;
     arbol.borrar_ratings(4);
     arbol.listar();
     arbol.borrar_ratings(10);
