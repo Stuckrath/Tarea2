@@ -82,7 +82,7 @@ class LibroCreator{
         }
 };
 
-
+/*
 class Tree{
     private:
         Nodo root= Nodo();
@@ -257,49 +257,14 @@ int main() {
     return 0;
 }
 
+*/
 
-/*
 class Tree{
     private:
         Nodo root= Nodo();
 
-       Tree(){bool debugging = false;
-    std::ios_base::sync_with_stdio(false);
-    std::cin.tie(NULL);
-    //Lectura de Archivos XML, deben estar guardados en una carpeta llamada "XMLs" junto al ejecutable
-    namespace fs = std::filesystem;
-    string c = "XMLs/";
-    int i = 0;
-    LibroCreator lb = LibroCreator();
-    for (const auto & entry : fs::directory_iterator(c)){
-        pugi::xml_document doc;
-        pugi::xml_parse_result result = doc.load_file(entry.path().c_str());
-        if (!result)
-           break;
-        i++;
-      
-        lb.CrearNodo(&doc,&root);
-        if(debugging){
-            std::stack<Nodo*> testeo;
-            testeo.push(&root);
-            while (!testeo.empty()){
-                Nodo* auxNode = testeo.top();
-                testeo.pop();
-                cout<<auxNode->data<<endl;
-                for (Nodo* n: auxNode->hijos) testeo.push(n);
-            }
-        }
-    }
-}
 
-
-
-
-
-
-
-
-        void preorder(Nodo* nodo) {
+          void preorder(Nodo* nodo) {
             if (!nodo)
                 return;
             if (nodo->data=="id"){
@@ -317,7 +282,30 @@ class Tree{
             delete node;
         }
         
-    public:
+        public:
+
+       Tree(){
+
+    std::ios_base::sync_with_stdio(false);
+    std::cin.tie(NULL);
+    //Lectura de Archivos XML, deben estar guardados en una carpeta llamada "XMLs" junto al ejecutable
+    namespace fs = std::filesystem;
+    string c = "XMLs/";
+    int i = 0;
+    LibroCreator lb = LibroCreator();
+    for (const auto & entry : fs::directory_iterator(c)){
+        pugi::xml_document doc;
+        pugi::xml_parse_result result = doc.load_file(entry.path().c_str());
+        if (!result)
+           break;
+        i++;
+      
+        lb.CrearNodo(&doc,&root);
+       
+    }
+}
+
+
      void listar(){
             preorder(&root);
         }
@@ -342,16 +330,24 @@ class Tree{
             int i=0;
             for (Nodo* libro : similares->hijos){
                 Nodo* date=libro->getHijo( "publication_year");
-                int añoS= std::stoi( ((date->hijos)[0])->data);
+               int añoS = (date->hijos[0])->data.empty() ? 0 : std::stoi((date->hijos[0])->data);
                 if (añoS>año){
                     i++;
                 }    
             }
             if (i==(similares->hijos).size()){
             cout<<(((child->getHijo("id")))->hijos[0])->data<<endl;}
+            else {
+                cout<<"No hay precursores"<<endl;
+            }
         }  
     }
 };
 
+int main(){
+    Tree arbol= Tree();
+    cout<<"aaaaa"<<endl;
+    arbol.listar();
+    arbol.precursores();
 
-*/
+}
