@@ -40,6 +40,7 @@ class Nodo{
                 }
                 else return nullptr;
             }
+            return NULL;
         }
 
 };
@@ -155,7 +156,7 @@ class Tree{
                 cout<<auxNode->data<<endl;
                 for (Nodo* n: auxNode->hijos) testeo.push(n);
             }
-            return;*/
+            return;
         }
         
     public:
@@ -264,8 +265,7 @@ class Tree{
     private:
         Nodo root= Nodo();
 
-
-          void preorder(Nodo* nodo) {
+        void preorder(Nodo* nodo) {
             if (!nodo)
                 return;
             if (nodo->data=="id"){
@@ -282,28 +282,71 @@ class Tree{
                 deleteSubtree(child);
             delete node;
         }
+
+        void agregarNodo(pugi::xml_document* doc, Nodo* base){
+            //Paso 1: Crea la estructura base del arbol a partir de la estructura compartida de los XMLs
+            //Todos tienen un nodo base de la tag "GoodreadsResponse" que tiene un nodo hijo de la etiqueta "book"
+            base->data="GoodreadsResponse";
+            Nodo* book = new Nodo("book");
+            base->agregarHijo(book);
+            //Paso 2: Crea todos los nodos que van a contener información singular sobre el libro
+            //Debido a que cada nodo solo puede contener una string de información, la info correspondiente a la etiqueta se
+            //guardara como un nodo hijo al nodo de etiqueta correspondiente
+            std::vector<string> etiquetasSimples = {"id", "title", "isbn", "publication_year", "language_code", "description", "average_rating", "num_pages"};
+            for (string name : etiquetasSimples){
+                book->agregarHijo(new Nodo(name));
+            }
+            //Paso 3: Extraer la informacion correspondiente usando el xml_node de pugixml, guardarla en un nodo y asignarla como
+            //hijo del nodo "etiqueta" correspondiente
+            pugi::xml_node root = doc->child("GoodreadsResponse").child("book");
+            for (Nodo* etiqueta : book->hijos){
+                etiqueta->agregarHijo(new Nodo(root.child(etiqueta->data).text().as_string()));
+            }
+
+            //Paso 4: Repetimos el paso 2 y 3, pero ahora con una raiz distinta, de modo que creemos nodos que contienen
+            //la informacion de los libros similares al libro original
+            Nodo* LibrosSimilares = new Nodo("similar_books");
+            book->agregarHijo(LibrosSimilares);
+            pugi::xml_node similares_root = root.child("similar_books");
+            std::vector<string> etiquetasSimilares = {"title", "isbn", "publication_year"};
+
+            for (pugi::xml_node node_similar : similares_root.children()){
+                Nodo* singular_similar_book = new Nodo("book");
+                for (string name : etiquetasSimilares) {
+                    singular_similar_book->agregarHijo(new Nodo(name));
+                }
+                for (Nodo* etiqueta : singular_similar_book->hijos){
+                    etiqueta->agregarHijo(new Nodo(node_similar.child(etiqueta->data).text().as_string()));
+                }
+                LibrosSimilares->agregarHijo(singular_similar_book);
+            }
+            //Paso 5: Agrega el nodo raiz del arbol creado a partir del XML como un hijo del nodo base del arbol general
+            this->root.agregarHijo(base);
+            return;
+        }
         
-        public:
-
+    public:
        Tree(){
-
-    std::ios_base::sync_with_stdio(false);
-    std::cin.tie(NULL);
-    //Lectura de Archivos XML, deben estar guardados en una carpeta llamada "XMLs" junto al ejecutable
-    namespace fs = std::filesystem;
-    string c = "XMLs/";
-    int i = 0;
-    LibroCreator lb = LibroCreator();
-    for (const auto & entry : fs::directory_iterator(c)){
-        pugi::xml_document doc;
-        pugi::xml_parse_result result = doc.load_file(entry.path().c_str());
-        if (!result)
-           break;
-        i++;
-      
-        lb.CrearNodo(&doc,&root);
-       
-    }
+        std::ios_base::sync_with_stdio(false);
+        std::cin.tie(NULL);
+        //Lectura de Archivos XML, deben estar guardados en una carpeta llamada "XMLs" junto al ejecutable
+        namespace fs = std::filesystem;
+        string c = "XMLs/";
+        int i = 0;
+        LibroCreator lb = LibroCreator();
+        for (const auto & entry : fs::directory_iterator(c)){
+            pugi::xml_document doc;
+            pugi::xml_parse_result result = doc.load_file(entry.path().c_str());
+            if (!result)
+            break;
+        
+            lb.CrearNodo(&doc,&root);
+            i++;
+            if (i%250==0) {
+                cout<<"Archivos procesados: "<<i<<endl;
+            }
+        
+        }
 }
 
 
