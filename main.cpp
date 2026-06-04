@@ -132,7 +132,7 @@ class Tree{
                 }
             }
             cout << ids;
-            cout <<endl;
+            cout <<endl<<endl;
         }
         
         void deleteSubtree(Nodo* node) {
@@ -215,16 +215,21 @@ class Tree{
         }
 
     void borrar_ratings(float rating){
-        for (Nodo* child : root.hijos){
-            Nodo* dato = child->getHijo("average_rating");
-            if (!dato || dato->hijos.empty()) continue;
-            string rat2 = dato->hijos[0]->data;
-            float num;
-            if (!tryParseFloat(rat2, num)) continue;
-            if (num <= rating){
-                deleteSubtree(child);
-            }
+        if (root.hijos.empty()){
+            cout<<"El arbol ya está vacío, no se pueden borrar más libros"<<endl;
+            return;
         }
+        int i =0;
+        for (Nodo* child : root.hijos){
+            Nodo* dato=child->getHijo("average_rating");
+            string rat2= ((dato->hijos)[0])->data;
+            float num= (rat2=="") ? 0 : std::stof(rat2);
+            if (num<=rating){
+                deleteSubtree(child);
+                i++;
+            }  
+        } 
+        cout<<"Fueron borrados "<<i<<" libros"<<endl;
     }
 
     void precursores(){
@@ -257,7 +262,7 @@ class Tree{
                 base_prec += ", ";
             }
         }
-        cout << base_prec << endl;
+        cout << base_prec << endl << endl;
     }
 };
 
@@ -266,5 +271,10 @@ int main(){
     cout<<"aaaaa"<<endl;
     arbol.listar();
     arbol.precursores();
-
+    arbol.borrar_ratings(4);
+    arbol.listar();
+    arbol.borrar_ratings(10);
+    arbol.listar();
+    arbol.borrar_ratings(3);
+    return 0;
 }
