@@ -79,78 +79,6 @@ class LibroCreator{
         /// @brief  Utiliza libreria pugixml para acceder al nodo de libro y a partir de ahi sacar toda la información relevante para el arbol
         /// @param doc 
         void CrearNodo(pugi::xml_document* doc, Nodo* base){
-            base->data="GoodreadsResponse";
-            Nodo* book = new Nodo("book");
-            base->agregarHijo(book);
-            pugi::xml_node root = doc->child("GoodreadsResponse").child("book");
-            std::vector<string> etiquetasSimples = {"id", "title", "isbn", "publication_year", "language_code", "description", "average_rating", "num_pages"};
-            for (string name : etiquetasSimples){
-                book->agregarHijo(new Nodo(name));
-            }
-            for (Nodo* etiqueta : book->hijos){
-                etiqueta->agregarHijo(new Nodo(root.child(etiqueta->data).text().as_string()));
-            }
-            Nodo* LibrosSimilares = new Nodo("similar_books");
-            book->agregarHijo(LibrosSimilares);
-
-            pugi::xml_node similares_root = root.child("similar_books");
-            std::vector<string> etiquetasSimilares = {"title", "isbn", "publication_year"};
-
-            for (pugi::xml_node node_similar : similares_root.children()){
-                Nodo* singular_similar_book = new Nodo("book");
-                for (string name : etiquetasSimilares) {
-                    singular_similar_book->agregarHijo(new Nodo(name));
-                }
-                for (Nodo* etiqueta : singular_similar_book->hijos){
-                    etiqueta->agregarHijo(new Nodo(node_similar.child(etiqueta->data).text().as_string()));
-                }
-                LibrosSimilares->agregarHijo(singular_similar_book);
-            }
-
-            return;
-        }
-};
-
-
-//arbol implementado con los nodos definidos anteriormente
-class Tree{
-    private:
-        Nodo root= Nodo();    //raiz del arbol
-
-        //implementación éstandar de recorrido preorder
-        void preorder(Nodo* base) {
-            std::stack<Nodo*> auxStruct;
-            auxStruct.push(base);  //ocupamos un stack auxiliar para ir recorriendo el arbol 
-            string ids = "Lista de IDs: ";
-            while (!auxStruct.empty()){   
-                Nodo* nodo = auxStruct.top();
-                auxStruct.pop();
-                if (nodo->data=="id"){   //si nos encontramos con un nodo "id" revisamos su hijo por el valor
-                    string id_singular = nodo->hijos.front()->data;
-                    ids+=id_singular;  //agregamos el id a la lista de ids recorridos
-                    ids+=", ";
-                }
-                for (Nodo* hijo : nodo->hijos){   //agregamos los hijos del nodo actual
-                    auxStruct.push(hijo);
-                }
-            }
-            if (ids == "Lista de IDs: "){
-            cout << "Lista de libros está vacía!";     
-            }
-            else{
-            cout << ids;   } 
-            cout <<endl<<endl;
-        }
-        
-        //borra el subarbol del nodo entregado
-        void deleteSubtree(Nodo* node) {
-        if (!node) return;   //no hacemos nada si el puntero es nulo
-            for (auto child : node->hijos)
-                deleteSubtree(child);   //se borra de forma recursiva los subarboles de los hijos
-            delete node;
-        }
-
-        void agregarNodo(pugi::xml_document* doc, Nodo* base){
             //Paso 1: Crea la estructura base del arbol a partir de la estructura compartida de los XMLs
             //Todos tienen un nodo base de la tag "GoodreadsResponse" que tiene un nodo hijo de la etiqueta "book"
             base->data="GoodreadsResponse";
@@ -187,10 +115,47 @@ class Tree{
                 }
                 LibrosSimilares->agregarHijo(singular_similar_book);
             }
-            //Paso 5: Agrega el nodo raiz del arbol creado a partir del XML como un hijo del nodo base del arbol general
-            this->root.agregarHijo(base);
             return;
         }
+};
+
+
+//arbol implementado con los nodos definidos anteriormente
+class Tree{
+    private:
+        Nodo root= Nodo();    //raiz del arbol
+
+        //implementación éstandar de recorrido preorder
+        void preorder(Nodo* base) {
+            std::stack<Nodo*> auxStruct;
+            auxStruct.push(base);  //ocupamos un stack auxiliar para ir recorriendo el arbol 
+            string ids = "Lista de IDs: ";
+            while (!auxStruct.empty()){   
+                Nodo* nodo = auxStruct.top();
+                auxStruct.pop();
+                if (nodo->data=="id"){   //si nos encontramos con un nodo "id" revisamos su hijo por el valor
+                    string id_singular = nodo->hijos.front()->data;
+                    ids+=id_singular;  //agregamos el id a la lista de ids recorridos
+                    ids+=", ";
+                }
+                for (Nodo* hijo : nodo->hijos){   //agregamos los hijos del nodo actual
+                    auxStruct.push(hijo);
+                }
+            }
+              if (ids == "Lista de IDs: "){
+            cout << "Lista de libros está vacía!";     
+            }
+            else{
+            cout << ids;   } 
+            cout <<endl<<endl;
+        }
+        
+        //borra el subarbol del nodo entregado
+        void deleteSubtree(Nodo* node) {
+            if (!node) return;
+            delete node;
+        }
+
         
     public:
        Tree(){
@@ -207,7 +172,6 @@ class Tree{
             if (!result)
             break;
             
-            //this->agregarNodo(&doc,&root);
             lb.CrearNodo(&doc,&root);
             i++;
             if (i%250==0) {   //indicamos progreso
@@ -225,39 +189,66 @@ class Tree{
         //método para borrar libros con un rating menor o igual al parametro
     void borrar_ratings(float rating){
         if (root.hijos.empty()){  //avisamos y retornamos si no hay libros que filtrar
-            cout<<"El arbol ya está vacío, no se pueden borrar más libros"<<endl;
+            cout<<"El arbol ya está vacío, no se pueden borrar más libros"<<endl<<endl;
             return;
         }
-        int i =0;   //contador para llevar cuenta de cuantos libros han sido borrados
-        for (Nodo* child : root.hijos){  // revisamos los libros
-            Nodo* dato=child->getHijo("average_rating");   //se obtiene el nodo que apunta al rating de este libro
-            string rat2= ((dato->hijos)[0])->data;   //se obtiene el rating del libro
-            float num= (rat2=="") ? 0 : std::stof(rat2);  //string se pasa a float con un default de 0 si no se encuentra el dato
-            if (num<=rating){
-                deleteSubtree(child); //si el rating del libro es mejor al parametro se elimina el libro (y por lo tanto su subarbol)
-                i++;
-                
-            }  
-        } 
-        cout<<"Fueron borrados "<<i<<" libros con rating menor o igual a "<<rating<<endl;  
+        int removed = 0;
+        //Para cada nodo del arbol
+        for (size_t idx = 0; idx < root.hijos.size(); ){
+            //1) Revisamos que sea un nodo valido
+            Nodo* child = root.hijos[idx];
+            if (!child){
+                idx++;
+                continue;
+            }
+            //2) Revisamos si es que tiene un nodo de "average_rating" valido
+            Nodo* dato = child->getHijo("average_rating");
+            if (!dato || dato->hijos.empty()){
+                idx++;
+                continue;
+            }
+            //3) Transformamos el valor guardado en string a un float
+            string rat2 = dato->hijos[0]->data;
+            float num = 0.0f;
+            if (!tryParseFloat(rat2, num)){
+                num = 0.0f;
+            }
+            //4) Revisamos si es que este libro tiene menor rating, y si ese es el caso borra el nodo (y por como está definido Nodo,
+            //también todos sus hijos)
+            if (num <= rating){
+                root.hijos.erase(root.hijos.begin() + idx);
+                deleteSubtree(child);
+                removed++;
+            } else {
+                idx++;
+            }
+        }
+        cout<<"Fueron borrados "<<removed<<" libros con rating menor o igual a "<<rating<<endl<<endl;
     }
 
     //metodo que indica que libros tienen libros similares con una publicación posterior
     void precursores(){
-        string base_prec = "Libros que son precursores: ";
-        for (Nodo* child : root.hijos){   //se recorren los libros
-            Nodo* idNodo = child->getHijo("id");  //se obtiene nodo que apunta al id del libro
-            if (!idNodo || idNodo->hijos.empty()) continue;  //si nodo es nulo o no apunta al id seguimos a otro libro
-            Nodo* dato = child->getHijo("publication_year");  //obtenemos nodo a año de publicacion
-            if (!dato || dato->hijos.empty()) continue; //revisamos otro libro si este no tiene año de publicación
-            string str = dato->hijos[0]->data;  //string con año de publicación
+        cout << "Procesando precursores en " << root.hijos.size() << " libros..." << endl;
+        string resultado = "Libros que son precursores: ";
+        for (Nodo* child : root.hijos){
+            if (!child) continue;
+            Nodo* idNodo = child->getHijo("id");
+            if (!idNodo || idNodo->hijos.empty()) continue;
+            Nodo* dato = child->getHijo("publication_year");
+            if (!dato || dato->hijos.empty()) continue;
+            string str = dato->hijos[0]->data;
             int year;
             if (!tryParseInt(str, year)) continue;
-            Nodo* similares = child->getHijo("similar_books");  //obtenemos nodos que apuntan a libros similares
-            if (!similares) continue; //si no hay libros similares nos saltamos a otro libro
-            bool pastBookExists = false;  //booleano que indica si hay un libro que es predecesor de este
+            Nodo* similares = child->getHijo("similar_books");
+            if (!similares){
+                resultado += idNodo->hijos[0]->data;
+                resultado += ", ";
+                continue;
+            }
+            bool pastBookExists = false;
             for (Nodo* libro : similares->hijos){
-                Nodo* dateNode = libro->getHijo("publication_year"); //obtenemos año de publicación de libros similares
+                if (!libro) continue;
+                Nodo* dateNode = libro->getHijo("publication_year");
                 if (!dateNode || dateNode->hijos.empty()) continue;
                 string dateStr = dateNode->hijos[0]->data;   
                 int similar_year;
@@ -268,18 +259,18 @@ class Tree{
                 }
             }
 
-            if (!pastBookExists){  //si libro no tiene predesesores significa que es precursor
-                base_prec += idNodo->hijos[0]->data; //agregamos libro a lista de precursores
-                base_prec += ", ";
+            if (!pastBookExists){
+                resultado += idNodo->hijos[0]->data;
+                resultado += ", ";
             }
         }
-        cout << base_prec << endl << endl;
+        cout << resultado << endl<<endl;
+        return;
     }
 };
 
 int main(){
     Tree arbol= Tree();
-    cout<<"aaaaa"<<endl;
     arbol.listar();
     arbol.precursores();
     arbol.borrar_ratings(4);
