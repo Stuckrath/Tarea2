@@ -79,20 +79,29 @@ class LibroCreator{
         /// @brief  Utiliza libreria pugixml para acceder al nodo de libro y a partir de ahi sacar toda la información relevante para el arbol
         /// @param doc 
         void CrearNodo(pugi::xml_document* doc, Nodo* base){
+            //Paso 1: Crea la estructura base del arbol a partir de la estructura compartida de los XMLs
+            //Todos tienen un nodo base de la tag "GoodreadsResponse" que tiene un nodo hijo de la etiqueta "book"
             base->data="GoodreadsResponse";
             Nodo* book = new Nodo("book");
             base->agregarHijo(book);
-            pugi::xml_node root = doc->child("GoodreadsResponse").child("book");
+            //Paso 2: Crea todos los nodos que van a contener información singular sobre el libro
+            //Debido a que cada nodo solo puede contener una string de información, la info correspondiente a la etiqueta se
+            //guardara como un nodo hijo al nodo de etiqueta correspondiente
             std::vector<string> etiquetasSimples = {"id", "title", "isbn", "publication_year", "language_code", "description", "average_rating", "num_pages"};
             for (string name : etiquetasSimples){
                 book->agregarHijo(new Nodo(name));
             }
+            //Paso 3: Extraer la informacion correspondiente usando el xml_node de pugixml, guardarla en un nodo y asignarla como
+            //hijo del nodo "etiqueta" correspondiente
+            pugi::xml_node root = doc->child("GoodreadsResponse").child("book");
             for (Nodo* etiqueta : book->hijos){
                 etiqueta->agregarHijo(new Nodo(root.child(etiqueta->data).text().as_string()));
             }
+
+            //Paso 4: Repetimos el paso 2 y 3, pero ahora con una raiz distinta, de modo que creemos nodos que contienen
+            //la informacion de los libros similares al libro original
             Nodo* LibrosSimilares = new Nodo("similar_books");
             book->agregarHijo(LibrosSimilares);
-
             pugi::xml_node similares_root = root.child("similar_books");
             std::vector<string> etiquetasSimilares = {"title", "isbn", "publication_year"};
 
@@ -106,7 +115,6 @@ class LibroCreator{
                 }
                 LibrosSimilares->agregarHijo(singular_similar_book);
             }
-
             return;
         }
 };
@@ -144,47 +152,6 @@ class Tree{
             delete node;
         }
 
-        void agregarNodo(pugi::xml_document* doc, Nodo* base){
-            //Paso 1: Crea la estructura base del arbol a partir de la estructura compartida de los XMLs
-            //Todos tienen un nodo base de la tag "GoodreadsResponse" que tiene un nodo hijo de la etiqueta "book"
-            base->data="GoodreadsResponse";
-            Nodo* book = new Nodo("book");
-            base->agregarHijo(book);
-            //Paso 2: Crea todos los nodos que van a contener información singular sobre el libro
-            //Debido a que cada nodo solo puede contener una string de información, la info correspondiente a la etiqueta se
-            //guardara como un nodo hijo al nodo de etiqueta correspondiente
-            std::vector<string> etiquetasSimples = {"id", "title", "isbn", "publication_year", "language_code", "description", "average_rating", "num_pages"};
-            for (string name : etiquetasSimples){
-                book->agregarHijo(new Nodo(name));
-            }
-            //Paso 3: Extraer la informacion correspondiente usando el xml_node de pugixml, guardarla en un nodo y asignarla como
-            //hijo del nodo "etiqueta" correspondiente
-            pugi::xml_node root = doc->child("GoodreadsResponse").child("book");
-            for (Nodo* etiqueta : book->hijos){
-                etiqueta->agregarHijo(new Nodo(root.child(etiqueta->data).text().as_string()));
-            }
-
-            //Paso 4: Repetimos el paso 2 y 3, pero ahora con una raiz distinta, de modo que creemos nodos que contienen
-            //la informacion de los libros similares al libro original
-            Nodo* LibrosSimilares = new Nodo("similar_books");
-            book->agregarHijo(LibrosSimilares);
-            pugi::xml_node similares_root = root.child("similar_books");
-            std::vector<string> etiquetasSimilares = {"title", "isbn", "publication_year"};
-
-            for (pugi::xml_node node_similar : similares_root.children()){
-                Nodo* singular_similar_book = new Nodo("book");
-                for (string name : etiquetasSimilares) {
-                    singular_similar_book->agregarHijo(new Nodo(name));
-                }
-                for (Nodo* etiqueta : singular_similar_book->hijos){
-                    etiqueta->agregarHijo(new Nodo(node_similar.child(etiqueta->data).text().as_string()));
-                }
-                LibrosSimilares->agregarHijo(singular_similar_book);
-            }
-            //Paso 5: Agrega el nodo raiz del arbol creado a partir del XML como un hijo del nodo base del arbol general
-            this->root.agregarHijo(base);
-            return;
-        }
         
     public:
        Tree(){
@@ -201,7 +168,6 @@ class Tree{
             if (!result)
             break;
             
-            //this->agregarNodo(&doc,&root);
             lb.CrearNodo(&doc,&root);
             i++;
             if (i%250==0) {   //indicamos progreso
@@ -223,22 +189,28 @@ class Tree{
             return;
         }
         int removed = 0;
+        //Para cada nodo del arbol
         for (size_t idx = 0; idx < root.hijos.size(); ){
+            //1) Revisamos que sea un nodo valido
             Nodo* child = root.hijos[idx];
             if (!child){
                 idx++;
                 continue;
             }
+            //2) Revisamos si es que tiene un nodo de "average_rating" valido
             Nodo* dato = child->getHijo("average_rating");
             if (!dato || dato->hijos.empty()){
                 idx++;
                 continue;
             }
+            //3) Transformamos el valor guardado en string a un float
             string rat2 = dato->hijos[0]->data;
             float num = 0.0f;
             if (!tryParseFloat(rat2, num)){
                 num = 0.0f;
             }
+            //4) Revisamos si es que este libro tiene menor rating, y si ese es el caso borra el nodo (y por como está definido Nodo,
+            //también todos sus hijos)
             if (num <= rating){
                 root.hijos.erase(root.hijos.begin() + idx);
                 deleteSubtree(child);
@@ -247,7 +219,7 @@ class Tree{
                 idx++;
             }
         }
-        cout<<"Fueron borrados "<<removed<<" libros"<<endl;
+        cout<<"Fueron borrados "<<removed<<" libros con rating menor o igual a "<<rating<<endl;
     }
 
     //metodo que indica que libros tienen libros similares con una publicación posterior
@@ -289,17 +261,14 @@ class Tree{
             }
         }
         cout << resultado << endl;
-        cout << "precursores terminado" << endl;
         return;
     }
 };
 
 int main(){
     Tree arbol= Tree();
-    cout<<"aaaaa"<<endl;
     arbol.listar();
     arbol.precursores();
-    cout<<"Estoy fuera"<<endl;
     arbol.borrar_ratings(4);
     arbol.listar();
     arbol.borrar_ratings(10);
